@@ -1,0 +1,66 @@
+import java.io.*;
+import java.util.*;
+
+class Result {
+
+    /*
+     * Complete the 'stringSimilarity' function below.
+     * Uses Z-Algorithm to calculate suffix similarities in O(N) time.
+     */
+    public static long stringSimilarity(String s) {
+        int n = s.length();
+        if (n == 0) return 0;
+
+        int[] z = new int[n];
+        z[0] = n; // The similarity of the full string with itself is its length
+
+        int l = 0, r = 0; // [l, r] defines the window of the rightmost matched prefix
+
+        for (int i = 1; i < n; i++) {
+            if (i <= r) {
+                // Use previously computed Z-values within the current window
+                z[i] = Math.min(r - i + 1, z[i - l]);
+            }
+            
+            // Expand matching window character by character
+            while (i + z[i] < n && s.charAt(z[i]) == s.charAt(i + z[i])) {
+                z[i]++;
+            }
+            
+            // Update rightmost window boundaries
+            if (i + z[i] - 1 > r) {
+                l = i;
+                r = i + z[i] - 1;
+            }
+        }
+
+        // Sum up similarity values for all suffixes
+        long totalSimilarity = 0;
+        for (int length : z) {
+            totalSimilarity += length;
+        }
+
+        return totalSimilarity;
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = Integer.parseInt(bufferedReader.readLine().trim());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            String s = bufferedReader.readLine().trim();
+
+            long result = Result.stringSimilarity(s);
+
+            bufferedWriter.write(String.valueOf(result));
+            bufferedWriter.newLine();
+        }
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
