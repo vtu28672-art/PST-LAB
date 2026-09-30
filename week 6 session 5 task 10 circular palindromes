@@ -1,0 +1,192 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.*;
+
+class Result {
+
+    // Java 7 compatible floor(a / 2.0)
+    private static int floorDiv2(int a) {
+        return a >> 1;
+    }
+
+    // Java 7 compatible ceil(a / 2.0)
+    private static int ceilDiv2(int a) {
+        return (a + 1) >> 1;
+    }
+
+    // Custom Segment Tree for Range Max Updates evaluated offline
+    static class SegmentTree {
+        int n;
+        int[] tree;
+        int initVal;
+
+        SegmentTree(int n, int initVal) {
+            this.n = n;
+            this.initVal = initVal;
+            this.tree = new int[4 * n];
+            Arrays.fill(this.tree, initVal);
+        }
+
+        void update(int node, int l, int r, int ql, int qr, int val) {
+            if (ql <= l && r <= qr) {
+                tree[node] = Math.max(tree[node], val);
+                return;
+            }
+            int mid = (l + r) >> 1;
+            if (ql <= mid) update(node << 1, l, mid, ql, qr, val);
+            if (qr > mid) update((node << 1) | 1, mid + 1, r, ql, qr, val);
+        }
+
+        void pushDownAll(int node, int l, int r, int currentMax, int[] res) {
+            currentMax = Math.max(currentMax, tree[node]);
+            if (l == r) {
+                res[l] = currentMax;
+                return;
+            }
+            int mid = (l + r) >> 1;
+            pushDownAll(node << 1, l, mid, currentMax, res);
+            pushDownAll((node << 1) | 1, mid + 1, r, currentMax, res);
+        }
+    }
+
+    /*
+     * Complete the 'circularPalindromes' function below.
+     *
+     * The function is expected to return an INTEGER_ARRAY.
+     * The function accepts STRING s as parameter.
+     */
+    public static List<Integer> circularPalindromes(String s) {
+        int N = s.length();
+        if (N == 0) return new ArrayList<Integer>();
+
+        // Duplicate string to handle circular structure
+        String S = s + s;
+        int M = 4 * N + 1;
+        char[] T = new char[M];
+        for (int i = 0; i < 2 * N; i++) {
+            T[2 * i] = '#';
+            T[2 * i + 1] = S.charAt(i);
+        }
+        T[4 * N] = '#';
+
+        // Run Manacher's Algorithm
+        int[] P = new int[M];
+        int c = 0, r = 0;
+        for (int i = 0; i < M; i++) {
+            int iMirror = 2 * c - i;
+            if (r > i) {
+                P[i] = Math.min(r - i, P[iMirror]);
+            } else {
+                P[i] = 0;
+            }
+
+            while (i - 1 - P[i] >= 0 && i + 1 + P[i] < M && T[i - 1 - P[i]] == T[i + 1 + P[i]]) {
+                P[i]++;
+            }
+
+            if (i + P[i] > r) {
+                c = i;
+                r = i + P[i];
+            }
+        }
+
+        // Initialize Segment Trees for X (slope 0), Y (slope +2), and Z (slope -2)
+        SegmentTree stX = new SegmentTree(N, 0);
+        SegmentTree stY = new SegmentTree(N, -1000000000);
+        SegmentTree stZ = new SegmentTree(N, -1000000000);
+
+        for (int i = 0; i < M; i++) {
+            int p = P[i];
+            if (p <= 0) continue;
+
+            // Cap palindrome length at N while maintaining length parity
+            if (p > N) {
+                if ((p - N) % 2 == 0) {
+                    p = N;
+                } else {
+                    p = N - 1;
+                }
+            }
+
+            if (p <= 0) continue;
+
+            int kStart = Math.max(0, ceilDiv2(i - 2 * N + 1));
+            int kEnd = Math.min(N - 1, floorDiv2(i - 1));
+
+            if (kStart > kEnd) continue;
+
+            int k1 = Math.min(kEnd, floorDiv2(i + p - 2 * N));
+            int k2 = Math.max(kStart, ceilDiv2(i - p));
+
+            // Region 1: Slope +2
+            if (kStart <= k1) {
+                stY.update(1, 0, N - 1, kStart, k1, 2 * N - i);
+            }
+
+            // Region 2: Slope 0
+            int r2Start = Math.max(kStart, k1 + 1);
+            int r2End = Math.min(kEnd, k2 - 1);
+            if (r2Start <= r2End) {
+                stX.update(1, 0, N - 1, r2Start, r2End, p);
+            }
+
+            // Region 3: Slope -2
+            if (k2 <= kEnd) {
+                stZ.update(1, 0, N - 1, k2, kEnd, i);
+            }
+        }
+
+        // Collect answers from Segment Trees
+        int[] resX = new int[N];
+        int[] resY = new int[N];
+        int[] resZ = new int[N];
+
+        stX.pushDownAll(1, 0, N - 1, stX.initVal, resX);
+        stY.pushDownAll(1, 0, N - 1, stY.initVal, resY);
+        stZ.pushDownAll(1, 0, N - 1, stZ.initVal, resZ);
+
+        List<Integer> result = new ArrayList<Integer>(N);
+        for (int k = 0; k < N; k++) {
+            int ans = resX[k];
+            if (resY[k] > -1e8) {
+                ans = Math.max(ans, 2 * k + resY[k]);
+            }
+            if (resZ[k] > -1e8) {
+                ans = Math.max(ans, -2 * k + resZ[k]);
+            }
+            result.add(ans);
+        }
+
+        return result;
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = Integer.parseInt(bufferedReader.readLine().trim());
+
+        String s = bufferedReader.readLine();
+
+        List<Integer> result = Result.circularPalindromes(s);
+
+        for (int i = 0; i < result.size(); i++) {
+            bufferedWriter.write(String.valueOf(result.get(i)));
+
+            if (i != result.size() - 1) {
+                bufferedWriter.write("\n");
+            }
+        }
+
+        bufferedWriter.newLine();
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
