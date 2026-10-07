@@ -1,0 +1,54 @@
+import java.util.Scanner;
+
+public class task_9_Calculator_unit_testing {
+    public int add(int a, int b) {
+        return a + b;
+    }
+
+    public double divide(double a, double b) {
+        if (b == 0) {
+            throw new IllegalArgumentException("Cannot divide by zero");
+        }
+        return a / b;
+    }
+
+    public static void main(String[] args) {
+        task_9_Calculator_unit_testing calc = new task_9_Calculator_unit_testing();
+        Scanner scanner = new Scanner(System.in);
+
+        // System expects input like "10+20"
+        System.out.print("Enter expression (e.g., 10+20): ");
+        String input = scanner.nextLine().trim();
+
+        // Parse and process addition
+        if (input.contains("+")) {
+            try {
+                String[] parts = input.split("\\+");
+                int num1 = Integer.parseInt(parts[0].trim());
+                int num2 = Integer.parseInt(parts[1].trim());
+
+                // Perform the operation and check the unit test logic
+                int result = calc.add(num1, num2);
+                int expected = num1 + num2;
+
+                if (result == expected) {
+                    System.out.println("test passed");
+                } else {
+                    System.out.println("test failed");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid input format or calculation error.");
+            }
+        } else {
+            System.out.println("Please provide a valid addition expression (e.g., 10+20).");
+        }
+
+        scanner.close();
+    }
+}
+
+
+
+output
+Enter expression (e.g., 10+20): 10+20
+test passed
