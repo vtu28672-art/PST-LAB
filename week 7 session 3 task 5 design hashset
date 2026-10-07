@@ -1,0 +1,35 @@
+import java.util.LinkedList;
+
+class MyHashSet {
+    private final int KEY_SPACE = 769;
+    private LinkedList<Integer>[] buckets;
+
+    @SuppressWarnings("unchecked")
+    public MyHashSet() {
+        buckets = new LinkedList[KEY_SPACE];
+        for (int i = 0; i < KEY_SPACE; i++) {
+            buckets[i] = new LinkedList<>();
+        }
+    }
+    
+    private int hash(int key) {
+        return key % KEY_SPACE;
+    }
+    
+    public void add(int key) {
+        int hashKey = hash(key);
+        if (!buckets[hashKey].contains(key)) {
+            buckets[hashKey].add(key);
+        }
+    }
+    
+    public void remove(int key) {
+        int hashKey = hash(key);
+        buckets[hashKey].remove((Integer) key);
+    }
+    
+    public boolean contains(int key) {
+        int hashKey = hash(key);
+        return buckets[hashKey].contains(key);
+    }
+}
